@@ -80,6 +80,7 @@ ALTER SYSTEM SET wal_level = 'logical';
 - **Data Format**: transformed data is stored as **.json**.
 - **Buffer Size/Interval**: Data is flushed to S3 when either **1MB** of data is accumulated or **60 seconds** have passed, whichever comes first. **Note:** These values should be adjusted based on the stream's volume and frequency to optimize cost and performance.
 
+<img src="images/firehose_setup.png" alt="Firehose">
 
 ### **5. AWS Lambda (Transformation)**
 **Description:** AWS Lambda applies transformations to the incoming stream received from **Firehose** before it is saved to S3 as **.json** files.
