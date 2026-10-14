@@ -1,0 +1,61 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Production AWS SAM Template for Firehose CDC Flatten & Transform Lambda
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, staging, prod]
+    Description: Deployment environment name
+
+  LogLevel:
+    Type: String
+    Default: INFO
+    AllowedValues: [DEBUG, INFO, WARNING, ERROR]
+    Description: Structured JSON logging level
+
+  FlattenPayload:
+    Type: String
+    Default: "true"
+    AllowedValues: ["true", "false"]
+    Description: Flatten DMS data and inject _cdc_* metadata columns for Athena / Presto queries
+
+  DropControlRecords:
+    Type: String
+    Default: "true"
+    AllowedValues: ["true", "false"]
+    Description: Silently drop DMS control and heartbeat records to keep data lake clean
+
+Resources:
+  CdcFirehoseTransformFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "cdc-firehose-transform-${Environment}"
+      CodeUri: ./src
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.12
+      Architectures:
+        - arm64
+      MemorySize: 256
+      Timeout: 60
+      EphemeralStorage:
+        Size: 512
+      Environment:
+        Variables:
+          LOG_LEVEL: !Ref LogLevel
+          FLATTEN_PAYLOAD: !Ref FlattenPayload
+          DROP_CONTROL_RECORDS: !Ref DropControlRecords
+          MAX_DATA_SIZE: "1048576"
+      Policies:
+        - AWSLambdaBasicExecutionRole
+      Tags:
+        Environment: !Ref Environment
+        Project: cdc-kinesis-ingestion
+
+Outputs:
+  FunctionArn:
+    Description: Lambda Function ARN for Firehose Processor configuration
+    Value: !GetAtt CdcFirehoseTransformFunction.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-TransformFunctionArn"

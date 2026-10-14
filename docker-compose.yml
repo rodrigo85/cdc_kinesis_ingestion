@@ -1,0 +1,75 @@
+services:
+  # ============================================================================
+  # 1. PostgreSQL 16 with Logical Decoding enabled for CDC
+  # ============================================================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: cdc_postgres
+    restart: unless-stopped
+    command: >
+      postgres
+      -c wal_level=logical
+      -c max_wal_senders=10
+      -c max_replication_slots=10
+      -c shared_buffers=128MB
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-delivery_db}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - ./scripts/init_postgres.sql:/docker-entrypoint-initdb.d/01_init_postgres.sql:ro
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-delivery_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - cdc_net
+
+  # ============================================================================
+  # 2. LocalStack (Optional Profile): Offline AWS Cloud Simulation
+  # Run with: docker compose --profile localstack up -d
+  # ============================================================================
+  localstack:
+    image: localstack/localstack:latest
+    container_name: cdc_localstack
+    profiles: ["localstack"]
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=kinesis,firehose,s3,lambda,iam
+      - AWS_DEFAULT_REGION=sa-east-1
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    networks:
+      - cdc_net
+
+  # ============================================================================
+  # 3. Ngrok Secure Tunnel (Optional Profile): Exposes Postgres to AWS DMS
+  # Run with: NGROK_AUTHTOKEN=<token> docker compose --profile tunnel up -d
+  # ============================================================================
+  ngrok:
+    image: ngrok/ngrok:latest
+    container_name: cdc_ngrok
+    profiles: ["tunnel"]
+    restart: unless-stopped
+    command: "tcp postgres:5432"
+    environment:
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - cdc_net
+
+networks:
+  cdc_net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local

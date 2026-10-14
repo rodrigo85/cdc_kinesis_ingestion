@@ -1,0 +1,5 @@
+# Production Lambda dependencies
+# The transformation Lambda function is designed with zero external dependencies
+# using Python 3.10+ standard library for ultra-fast sub-millisecond cold starts.
+# Optional extensions:
+# aws-lambda-powertools>=2.35.0

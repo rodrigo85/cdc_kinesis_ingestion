@@ -1,0 +1,13 @@
+aws_region                       = "sa-east-1"
+environment                      = "dev"
+project_name                     = "cdc-delivery"
+kinesis_stream_mode              = "ON_DEMAND"
+firehose_buffer_size_mb          = 5
+firehose_buffer_interval_seconds = 60
+
+# PostgreSQL connection (e.g., Ngrok host:port or AWS RDS endpoint)
+postgres_host     = "0.tcp.sa.ngrok.io"
+postgres_port     = 12345
+postgres_db_name  = "delivery_db"
+postgres_username = "dms_user"
+postgres_password = "DmsSecurePassword2026!"

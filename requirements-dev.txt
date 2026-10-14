@@ -1,0 +1,8 @@
+# Development, testing, and synthetic data generation dependencies
+pytest>=8.0.0
+pytest-cov>=4.1.0
+ruff>=0.4.0
+mypy>=1.9.0
+psycopg2-binary>=2.9.9
+boto3>=1.34.0
+faker>=24.0.0

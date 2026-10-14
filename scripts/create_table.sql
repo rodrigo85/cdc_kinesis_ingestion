@@ -1,4 +1,8 @@
-CREATE TABLE delivery.orders (
+-- Ensure delivery schema exists
+CREATE SCHEMA IF NOT EXISTS delivery;
+
+-- Create orders table with constraints
+CREATE TABLE IF NOT EXISTS delivery.orders (
 	id serial4 NOT NULL,
 	order_number varchar(50) NOT NULL,
 	customer_name varchar(100) NOT NULL,
@@ -15,3 +19,10 @@ CREATE TABLE delivery.orders (
 	CONSTRAINT orders_order_number_key UNIQUE (order_number),
 	CONSTRAINT orders_pkey PRIMARY KEY (id)
 );
+
+-- Crucial for CDC: REPLICA IDENTITY FULL ensures UPDATE and DELETE records include old column values
+ALTER TABLE delivery.orders REPLICA IDENTITY FULL;
+
+-- Performance indexes
+CREATE INDEX IF NOT EXISTS idx_orders_status ON delivery.orders(status);
+CREATE INDEX IF NOT EXISTS idx_orders_created_at ON delivery.orders(created_at);
