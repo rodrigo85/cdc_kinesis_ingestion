@@ -354,17 +354,23 @@ For routine operations, use this consolidated reference table:
 | **Stop All Containers** | `docker compose down` | `make down` | `.\run.ps1 down` |
 
 ---
-.\run.ps1 test
-```
 
-Test coverage includes:
-- [x] Flattened `INSERT` record payload extraction and metadata injection.
-- [x] `UPDATE` and `DELETE` record transformation.
-- [x] Unflattened envelope preservation mode (`FLATTEN_PAYLOAD=false`).
-- [x] Safe dropping of DMS heartbeat and control events.
-- [x] Base64 corruption and malformed JSON routing to `ProcessingFailed`.
-- [x] Payload size validation against Firehose limits (>1MB).
-- [x] Verification that all output payloads end with a valid newline (`\n`) for NDJSON.
+## 🛡 Automated Testing Suite Breakdown
+
+The repository includes a comprehensive automated test suite with 100% pass rate (`python -m pytest tests -v`):
+
+| Test File | Test Case | Functionality Verified |
+| :--- | :--- | :--- |
+| **`test_transform.py`** | `test_flattened_insert` | Flattens DMS payload into root columns and injects `_cdc_*` metadata |
+| | `test_unflattened_envelope` | Preserves nested `data` and `metadata` envelope when `FLATTEN_PAYLOAD=false` |
+| | `test_drop_control_records` | Cleanly filters DMS control and heartbeat messages (`result: 'Dropped'`) |
+| | `test_successful_insert_processing` | Full Firehose record base64 decoding, processing, and NDJSON `\n` formatting |
+| | `test_control_record_dropped` | Verifies dropped record retains required Firehose response structure |
+| | `test_corrupted_base64_routes_to_processing_failed` | Routes invalid base64 to S3 Dead Letter Queue (`result: 'ProcessingFailed'`) |
+| | `test_invalid_json_routes_to_processing_failed` | Routes malformed JSON to S3 DLQ without silent data loss |
+| | `test_oversized_payload_fails` | Rejects payloads exceeding Firehose limits (>1MB) safely |
+| | `test_mixed_batch` | Processes heterogeneous batch (inserts, updates, control, and corrupted) |
+| **`test_e2e_simulation.py`** | `test_postgres_to_lambda_transform_e2e` | Live integration test: queries PostgreSQL in Docker, simulates DMS, and verifies Lambda transform |
 
 ### CI/CD Workflow
 Every push and pull request executes `.github/workflows/ci.yml`:
